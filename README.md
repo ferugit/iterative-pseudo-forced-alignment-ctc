@@ -3,6 +3,7 @@
 
 This repo will contain the code for the publication:
 
+```bibtex
 @article{lopez2022tid,
   title={TID Spanish ASR system for the Albayzin 2022 Speech-to-Text Transcription Challenge$\}$$\}$},
   author={L{\'o}pez, Fernando and Luque, Jordi},
@@ -10,3 +11,4 @@ This repo will contain the code for the publication:
   pages={271--275},
   year={2022}
 }
+``
