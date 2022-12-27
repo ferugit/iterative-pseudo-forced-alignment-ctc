@@ -7,296 +7,36 @@ from tqdm import tqdm
 import torchaudio
 import pandas as pd
 
-from utils import text_utils
+from utils.alignment_utils import *
 
 from speechbrain.pretrained import EncoderASR
 from speechbrain.alignment.ctc_segmentation import CTCSegmentation
 
 
-def my_custom_logger(logger_name, split, level=logging.DEBUG):
-    """
-    Method to return a custom logger with the given name and level
-    """
-    logger = logging.getLogger(logger_name)
-    format = logging.Formatter("%(asctime)s [%(name)s] %(message)s")
-    logger.setLevel(level)
-    logger.propagate = False
-    
-    # Creating and adding the console handler
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(level)
-    console_handler.setFormatter(format)
-    
-    # Creating and adding the file handler
-    file_handler = logging.FileHandler('logs/' + split + '/' + logger_name + '.log', mode='w')
-    file_handler.setLevel(level)
-    file_handler.setFormatter(format)
-
-    logger.addHandler(console_handler)
-    logger.addHandler(file_handler)
-    
-    return logger
-
-
-def prepare_text(transcript, max_words_sequence=24):
-    """
-    Prepare text for alignment.
-    If text is longer than max_word_sequence, then is splited.
-    
-    Arguments
-    ---------
-    transcript: new text to align
-    max_words_sequence: maximum word length
-    
-    Returns
-    -------
-    transcript: list of text to align
-    """
-    if(len(transcript.split(' ')) > max_words_sequence):
-        transcript = text_utils.split_long_transcript(
-            transcript,
-            max_words_sequence=max_words_sequence
-            )
-    else:
-        transcript = [transcript] # transform to list
-    # NOTE: Using the space between utterances provides worse results
-    # list_to_align = []
-    #for i in range(1,  2*len(transcript)):
-        #list_to_align.append("·" if(i+1)%2 else transcript[int(i/2)])
-        #transcript = list_to_align
-    return transcript
-
-
-def get_n_aligned_rows(list_of_splits, n_aligned_splits):
-    index = 0
-    for i in range(1, len(list_of_splits)):
-        if(sum(list_of_splits[:-i]) <= n_aligned_splits):
-            index = i
-            break
-    return len(list_of_splits[:-index])
-
-
-def count_text_length(transcript):
-    return len(" ".join(transcript))
-
-
-def get_text_to_audio_proportion(audio_length, text_length, sample_rate):
-    """
-    Compare audio and text proportion.
-    Time resolution is ~20ms. Mean phoneme duraction is 80ms
-    margin_time: number of times to use for an utterance
-    
-    We assume that the audio duration will have as much 
-    the duration of text_length * mean_phoneme_length * margin_time 
-    Otherwise, we must discard some text fo rthe alignement or 
-    read more audio
-
-    Returns
-    -------
-    audio_to_text_proportion: proportion of duration of text inside the
-        audio. 
-        Values smaller than 1 mean that there is more audio than text.
-        Values bigger than 1 mean that there is more text than audio.
-    """
-    margin_time = 3
-    mean_phoneme_duration = 0.08 # 80ms
-    maximum_text_duration_s = text_length * mean_phoneme_duration * margin_time
-    maximum_text_duration_samples = maximum_text_duration_s * sample_rate
-    return maximum_text_duration_samples / audio_length
-
-
-def insert_row(idx, df, list_to_insert):
-    # FIXME: attemt to keep a fixed order of the columns
-    columns = ['Sample_ID', 'Sample_Path', 'Audio_Length', 'Start', 'End', 'Transcription', 'Speaker_ID', 'Database','Channel','Text_Length', 'Type']
-    dfA = df.iloc[:idx, ]
-    dfB = df.iloc[idx:, ]
-    df = dfA.append(pd.Series(list_to_insert, index=columns), ignore_index=True).append(dfB)
-    return df.reset_index(drop=True)
-
-
-def fix_time_reference(file_df, vad_file_df, real_audio_length, n_segments):
-    """Fix time reference. Ignoring original reference information.
-    This function provides an audio duration for each sentence 
-    depending on the number of characters of the sentence.
-    """
-    file_df['Text_Length'] = file_df['Transcription'].astype(str).apply(lambda x: len(x))
-    total_text_length = file_df['Text_Length'].sum()
-    speech_length = vad_file_df['Segment_Length'].sum()
-    audio_lenth_acc = 0.0
-    vad_segment_counter = 0
-    list_of_indexes = []
-
-    for index, row in file_df.iterrows():
-        row_text_length = row['Text_Length']
-        text_percentage = row_text_length / total_text_length
-        audio_legth = text_percentage * speech_length
-        file_df.loc[index,'Start'] = audio_lenth_acc
-        file_df.loc[index,'End'] = audio_lenth_acc + audio_legth
-        audio_lenth_acc += audio_legth
-        is_last_segment = True if((index + 1) == n_segments) else False
-        
-        # VAD speech segments
-        speech_end = float(vad_file_df.iloc[[vad_segment_counter]]['End'])
-
-        if audio_lenth_acc >= speech_end:
-            file_df.loc[index,'End'] = speech_end
-            
-            if vad_segment_counter + 1 < len(vad_file_df.index):
-                next_speech_start = float(vad_file_df.iloc[[vad_segment_counter + 1]]['Start'])
-                audio_lenth_acc = next_speech_start
-                vad_segment_counter += 1
-                list_of_indexes.append(index)
-
-        if is_last_segment and audio_lenth_acc < real_audio_length:
-            file_df.loc[index,'End'] = real_audio_length
-    
-    file_df['Type'] = 'Speech'
-    sample = file_df.sample(1)
-    sample_path = str(sample['Sample_Path'].values[-1])
-    channel = int(sample['Channel'].values[-1])
-    database = str(sample['Database'].values[-1])
-
-    for index in range(len(list_of_indexes)):
-        current_speech_end = float(vad_file_df.iloc[[index]]['End'])
-        next_speech_start = float(vad_file_df.iloc[[index + 1]]['Start'])
-
-        # FIXME: stablish a fix order!
-        row_new = [
-            'Non-speech-' + str(index), sample_path, next_speech_start - current_speech_end, current_speech_end, 
-            next_speech_start, "Non-Speech", "Non-Speech", database, channel, 0, 'Non-Speech'
-            ]
-        file_df = insert_row(list_of_indexes[index] + 1, file_df, row_new)
-
-    # FIXME: remove following line
-    #file_df.to_csv('references.tsv', sep='\t')
-    return file_df
-
-
-def find_a_valid_text_to_audio_proportion(audio_length, transcript, samples_to_frames_ratio):
-    """
-    Given a high quantity of text compared with the audio length.
-    Find a valid text to audio proportion to calculate do the
-    alignment.
-    """
-    # TODO: review this function: is not working that good!
-    original_transcript = transcript
-    max_number_of_chars = int(audio_length / samples_to_frames_ratio)
-    new_discarded_transcripts = []
-    
-    for _ in range(1, len(transcript) + 1):
-        
-        current_text_length = count_text_length(transcript)
-        print("Current text length: ", current_text_length)
-        if current_text_length < max_number_of_chars:
-            print('This happens')
-            return transcript, new_discarded_transcripts
-        
-        new_discarded_transcripts.append(transcript[-1])
-        transcript = transcript[:-1]
-        print("Max number of chars: ", max_number_of_chars)
-
-    return original_transcript, []
-        
-
-def fix_text_to_time_proportion(
-    file_df, vad_file_df, real_audio_length, n_aligned, n_segments, last_anchor_time, logger
-    ):
-    """
-    Reorganize text to time proportion, beacuse window size is big. 
-    """
-    # Length of remaining text & speech
-    total_text_length = file_df.iloc[n_aligned:]['Text_Length'].sum()
-    vad_file_df = vad_file_df[vad_file_df['End'] > last_anchor_time].reset_index(drop=True)
-    vad_file_df.at[0, 'Start'] = last_anchor_time
-    vad_file_df['Segment_Length'] = vad_file_df['End'] - vad_file_df['Start']
-    speech_length = vad_file_df['Segment_Length'].sum()
-    audio_lenth_acc = last_anchor_time
-    vad_segment_counter = 0
-    list_of_indexes = []
-    logger.debug('Remaining audio: {0} | Remaining text: {1} | Remaining speech length {2}'.format(
-        real_audio_length,
-        total_text_length,
-        speech_length
-    ))
-    logger.debug('Aligned index: {0}, Total segments: {1}'.format(n_aligned, n_segments))
-
-    # Remove non-speech segments: by the moment
-    n_non_speech_df = file_df[file_df['Type'] == 'Non-Speech']
-    file_df = file_df[file_df['Type'] == 'Speech'].reset_index(drop=True)
-
-    for index in range(n_aligned, n_segments):
-        row = file_df.iloc[index]
-        row_text_length = row['Text_Length']
-        text_percentage = row_text_length / total_text_length
-        audio_legth = text_percentage * speech_length
-        file_df.loc[index,'Start'] = audio_lenth_acc
-        file_df.loc[index,'End'] = audio_lenth_acc + audio_legth
-        audio_lenth_acc += audio_legth
-        is_last_segment = True if((index + 1) == n_segments) else False
-        
-        # VAD speech segments
-        speech_end = float(vad_file_df.iloc[[vad_segment_counter]]['End'])
-
-        if audio_lenth_acc >= speech_end:
-            file_df.loc[index,'End'] = speech_end
-            
-            if vad_segment_counter + 1 < len(vad_file_df.index):
-                next_speech_start = float(vad_file_df.iloc[[vad_segment_counter + 1]]['Start'])
-                audio_lenth_acc = next_speech_start
-                vad_segment_counter += 1
-                list_of_indexes.append(index)
-
-        if is_last_segment and audio_lenth_acc < real_audio_length:
-            file_df.loc[index,'End'] = real_audio_length
-    
-    file_df['Type'] = 'Speech'
-    sample = file_df.sample(1)
-    sample_path = str(sample['Sample_Path'].values[-1])
-    channel = int(sample['Channel'].values[-1])
-    database = str(sample['Database'].values[-1])
-
-    for index in range(len(list_of_indexes)):
-        current_speech_end = float(vad_file_df.iloc[[index]]['End'])
-        next_speech_start = float(vad_file_df.iloc[[index + 1]]['Start'])
-        row_new = [
-            'Non-speech-' + str(index), sample_path, channel, next_speech_start - current_speech_end, 
-            current_speech_end, next_speech_start, "Non-Speech", "Non-Speech",
-            database, 0, 'Non-Speech'
-            ]
-        file_df = insert_row(list_of_indexes[index] + 1, file_df, row_new)
-
-    if(len(n_non_speech_df.index) > len(list_of_indexes)):
-        generator = n_non_speech_df.iterrows()
-
-        for i in range(len(n_non_speech_df.index) - len(list_of_indexes)):
-            index, row = next(generator)
-            file_df = insert_row(index, file_df, row)
-
-    #file_df.to_csv('references_2.tsv', sep='\t')
-    return file_df
-
-
 def get_file_iterative_segmentation(
-    asr_model, aligner, audio_path, file_df, vad_file_df,
-    samples_to_frames_ratio, split):
+    asr_model,
+    aligner,
+    audio_path,
+    file_df,
+    vad_file_df,
+    samples_to_frames_ratio,
+    logs_path,
+    threshold=-2.0,
+    short_utterance_len=30,
+    max_words_sequence=24,
+    min_words_sequence=None,
+    max_window_size=70.0,
+    window_to_stop=500.0,
+    min_text_to_audio_prop=0.8,
+    max_text_to_audio_prop_exec=10):
 
     # Logging
     log_name = audio_path.split('/')[-1].replace('.wav', '')
-    logger = my_custom_logger(f"{log_name}", split)
+    logger = my_custom_logger(logs_path, f"{log_name}")
     logger.debug('Starting iterative alignment for file: ' + str(audio_path))
-
-    # Alignment parameters
-    threshold = -2.0 # good performance achieved with -6.0
-    n_missaligned_utterances = 1 # consider that only one is due to bad transcription
-    short_utterance_len = 30 # Minimum sequence of chars to select anchors
-    max_words_sequence = 24 # Mesured from CommonVoice Dataset
-    max_window_size = 70.0 # Seconds, for the sake of computational load
-    window_to_stop = 500.0 # Seconds, windows to stop execution
-    min_text_to_audio_prop = 0.8 # Min text to audio proportion
-    max_text_to_audio_prop_exec = 10 # Number of consecutive exceptions to stop
     
     # Auxiliar tools to align
-    new_segment_start = None # Anchor position
+    new_segment_start = None # Fist anchor position
     discarded_transcripts = [] # List of discarded transcripts
     n_segments = len(file_df.index) # Total number of utterances
     list_of_splits = [] # Sub utterance aligned counter
@@ -672,71 +412,98 @@ def main(args):
     columns = ['Sample_ID', 'Sample_Path', 'Channel', 'Audio_Length', 'Start', 'End','Segment_Score', 'Transcription', 'Speaker_ID', 'Database']
 
     # Load ASR model
-    source_path = 'config/'
-    hparams_path = 'ctc_sp_with_wav2vec.yaml'
-    savedir_path = 'data/asr/ctc/savedir'
+    source_path = args.asr_src_path
+    hparams_path = args.asr_yaml
+    savedir_path = args.asr_savedir
     asr_model = EncoderASR.from_hparams(source=source_path, hparams_file=hparams_path, savedir=savedir_path) 
 
     # Segmentation tool
     aligner = CTCSegmentation(asr_model, kaldi_style_text=False, time_stamps="fixed", scoring_length=30)
-    samples_to_frames_ratio = aligner.estimate_samples_to_frames_ratio()
+    samples_to_frames_ratio = aligner.estimate_samples_to_frames_ratio() # audio reduction
 
-    # Splits to align
-    #splits = ['dev1', 'dev2', 'train']
-    splits = ['train', 'dev1', 'dev2', 'test']
+    # Input files reference files
+    df_path = os.path.normpath(args.tsv)
+    vad_segments_path = os.path.normpath(args.vad_segments_tsv)
 
-    for split in splits:
+    # Check if files exist
+    if(os.path.isfile(df_path) and os.path.isfile(vad_segments_path)):
+        df = pd.read_csv(df_path, header=0, sep='\t')
+        vad_df = pd.read_csv(vad_segments_path, header=0, sep='\t')
+        audio_paths = df['Sample_Path'].unique()
+        filename = df_path.split('/')[-1]
 
-        # Scan reference files
-        df_path = os.path.join(args.tsv, 'tsv', split + '.tsv')
-        vad_segments_path = os.path.join(args.tsv, 'vad_segments', split + '_vad_segments_filtered.tsv')
+        progress_bar = tqdm(total=len(audio_paths), desc='Aligning ' + filename)
 
-        if(os.path.isfile(df_path) and os.path.isfile(vad_segments_path)):
-            df = pd.read_csv(df_path, header=0, sep='\t')
-            vad_df = pd.read_csv(vad_segments_path, header=0, sep='\t')
-            audio_paths = df['Sample_Path'].unique()
-            progress_bar = tqdm(total=len(audio_paths), desc='Alignment ' + split + ' split')
-
-            # Loop each audio in chunks for the sake of computational load
-            for audio_path in audio_paths:
-                
-                file_alignments = []
-                
-                if(os.path.isfile(os.path.join(args.dst, split, audio_path.split('/')[-1].replace('.wav', '.tsv')))):
-                    print('File ' + str(os.path.join(args.dst, split, audio_path.replace('.wav', '.tsv'))) + ' already exist, skipping the alignment generation.')
-                    progress_bar.update(1)
-                    continue
-                else:
-                    # To allow parallelization
-                    tsv_result_file = os.path.join(args.dst, split, audio_path.split('/')[-1].replace('.wav', '.tsv'))
-                    open(tsv_result_file, 'a').close()
-
-                    file_df = df[df['Sample_Path'] == audio_path]
-                    file_df = file_df.reset_index(drop=True)
-                    vad_file_df = vad_df[vad_df['Sample_Path'] == audio_path]
-                    vad_file_df = vad_file_df.reset_index(drop=True)
-                    file_alignments = get_file_iterative_segmentation(
-                        asr_model,
-                        aligner,
-                        audio_path,
-                        file_df,
-                        vad_file_df,
-                        samples_to_frames_ratio,
-                        split
-                        )
-                    file_alignments_df = pd.DataFrame(file_alignments, columns=columns)
-                    file_alignments_df.to_csv(tsv_result_file, sep='\t', index=None)
-                
+        # Loop each audio in chunks for the sake of computational load
+        for audio_path in audio_paths:
+            
+            file_alignments = []
+            
+            if(os.path.isfile(os.path.join(args.dst, audio_path.split('/')[-1].replace('.wav', '.tsv')))):
+                print('File ' + str(os.path.join(args.dst, audio_path.replace('.wav', '.tsv'))) + ' already exist, skipping the alignment generation.')
                 progress_bar.update(1)
-        
-        else:
-            print('{0} or {1} file does not exists, please create it.'.format(df_path, vad_segments_path))  
+                continue
+            else:
+                # To allow parallelization
+                tsv_result_file = os.path.join(args.dst, audio_path.split('/')[-1].replace('.wav', '.tsv'))
+                open(tsv_result_file, 'a').close()
+
+                file_df = df[df['Sample_Path'] == audio_path]
+                file_df = file_df.reset_index(drop=True)
+                vad_file_df = vad_df[vad_df['Sample_Path'] == audio_path]
+                vad_file_df = vad_file_df.reset_index(drop=True)
+                file_alignments = get_file_iterative_segmentation(
+                    asr_model,
+                    aligner,
+                    audio_path,
+                    file_df,
+                    vad_file_df,
+                    samples_to_frames_ratio,
+                    logs_path=args.logs_path,
+                    threshold=args.threshold,
+                    short_utterance_len=args.short_utterance_len,
+                    max_words_sequence=args.max_words_sequence,
+                    min_words_sequence=args.min_words_sequence,
+                    max_window_size=args.max_window_size,
+                    window_to_stop=args.window_to_stop,
+                    min_text_to_audio_prop=args.min_text_to_audio_prop,
+                    max_text_to_audio_prop_exec=args.max_text_to_audio_prop_exec)
+                file_alignments_df = pd.DataFrame(file_alignments, columns=columns)
+                file_alignments_df.to_csv(tsv_result_file, sep='\t', index=None)
+            
+            progress_bar.update(1)
+    
+    else:
+        print('{0} or {1} file does not exists, please create it.'.format(df_path, vad_segments_path))  
+
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description="Iterative algorithm for RTVE2018DB")
-    parser.add_argument("--tsv", help="metadata with filtered audio", default="data/RTVE2018DB/")
-    parser.add_argument("--dst", help="metadata with utterance-level segmented audio", default="data/RTVE2018DB/segmented")
+    
+    # Input files
+    parser.add_argument("--tsv", help="tsv file with comming from a stm file", default="")
+    parser.add_argument("--vad_segments_tsv", help="tsv file of filtered speech segments", default="")
+
+    # Output folder    
+    parser.add_argument("--dst", help="path to place results", default="")
+    parser.add_argument("--logs_path", help="path to place logs", default="")
+
+    # ASR arguments
+    parser.add_argument("--asr_src_path", help="ASR source path", default="")
+    parser.add_argument("--asr_yaml", help="ASR yaml file", default="")
+    parser.add_argument("--asr_savedir", help="ASR save dir to store a symbolic link", default="")
+
+    # Alignment configuration
+    parser.add_argument('--threshold', type=float, default=-2.0, help='alignment threshold')
+    parser.add_argument('--short_utterance_len', type=int, default=30, help='minimum length in characters of utterances that can be anchors')
+    parser.add_argument('--max_words_sequence', type=int, default=24, help='maximum word sequence of utterances')
+    parser.add_argument('--min_words_sequence', type=int, default=None, help='minimum word sequence of utterances')
+    parser.add_argument('--max_window_size', type=float, default=70.0, help='maximum windows size to recalculate time refences')
+    parser.add_argument('--window_to_stop', type=float, default=500.0, help='maximum windows size to stop alignment process: lost in alignment')
+    parser.add_argument('--min_text_to_audio_prop', type=float, default=0.8, help='minimum text to audio proportion to perform alignment')
+    parser.add_argument('--max_text_to_audio_prop_exec', type=int, default=10, help='maximum text to audio proportion exceptions to stop alignment process')
+
     args = parser.parse_args()
 
     # Run main
