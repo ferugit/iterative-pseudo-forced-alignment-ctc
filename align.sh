@@ -10,7 +10,7 @@
 #       
 #       *Sample_ID*: audio filename w/o extension + "_" + START_OF_SEGMENT + "_" + END_OF_SEGMENT
 #       *Sample_Path*: audio file path
-#       *Channel*: canal
+#       *Channel*: channel
 #       *Audio_Length*: END_OF_SEGMENT - START_OF_SEGMENT
 #       *Start*: START_OF_SEGMENT
 #       *End*: END_OF_SEGMENT
@@ -35,7 +35,8 @@
 alignment_name="rtve2022_dev" # alignment name, comment to use timestamp instead
 tsv_path=data/dev/tsv/dev.tsv # source file with metadata
 generate_vad_segments=false # put to false if already generated
-n_process=1 # number of processes to perform alignment
+generate_stm_results=true # generate stm files from tsv results
+n_process=1 # number of processes to perform alignment, numbers bigger than 1 perform parallel alignment
 
 # VAD configuration
 max_non_speech_segments=20.0 # vad segments to filter
@@ -109,8 +110,13 @@ do
     --max_text_to_audio_prop_exec $max_text_to_audio_prop_exec > $logs_dir"/global_"${i}.log &
 done
 
-
-#--short_utterance_len $short_utterance_len --max_words_sequence $max_words_sequence \ #--min_words_sequence $min_words_sequence \
-
 # Wait for the processes to finish
 wait
+
+# generate stm files
+if $generate_stm_results
+then
+    stm_dir=$results_dir/stm
+    mkdir -p $stm_dir
+    python -u src/scripts/tsv_to_stm.py --src_path $results_dir --dst_path $stm_dir
+fi
