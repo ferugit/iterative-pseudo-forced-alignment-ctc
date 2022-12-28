@@ -7,10 +7,11 @@
 # Requirements:
 #   i) Audio files and a tsv file containing the following columns: 
 #       [Sample_ID, Sample_Path, Channel, Audio_Length, Start, End, Transcription, Speaker_ID, Database]
+#       The source temporal information can be defined as wanted as it is not used.
 #       
 #       *Sample_ID*: audio filename w/o extension + "_" + START_OF_SEGMENT + "_" + END_OF_SEGMENT
 #       *Sample_Path*: audio file path
-#       *Channel*: channel
+#       *Channel*: channel (not uset)
 #       *Audio_Length*: END_OF_SEGMENT - START_OF_SEGMENT
 #       *Start*: START_OF_SEGMENT
 #       *End*: END_OF_SEGMENT
