@@ -1,5 +1,5 @@
 
-
+![alignemnt-diagram](data/img/alignment_diagram.jpg)
 
 This repo will contain the code for the publication:
 
