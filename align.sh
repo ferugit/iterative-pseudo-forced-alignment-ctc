@@ -7,25 +7,40 @@
 # Requirements:
 #   i) Audio files and a tsv file containing the following columns: 
 #       [Sample_ID, Sample_Path, Channel, Audio_Length, Start, End, Transcription, Speaker_ID, Database]
-#       The source temporal information can be defined as wanted as it is not used.
 #       
-#       *Sample_ID*: audio filename w/o extension + "_" + START_OF_SEGMENT + "_" + END_OF_SEGMENT
-#       *Sample_Path*: audio file path
-#       *Channel*: channel (not uset)
-#       *Audio_Length*: END_OF_SEGMENT - START_OF_SEGMENT
-#       *Start*: START_OF_SEGMENT
-#       *End*: END_OF_SEGMENT
-#       *Transcription*: reference text
-#       *Speaker_ID*: not used
-#       *Database*: not used
+#       *** The source temporal information is not used, can be dummy temporal information.
 #       
-#   ii) A already trained ASR in the target language in the SpeechBrain language
+#       +---------------+-----+--------------------------------------------------------+
+#       |     Name      | Use |                      Explanation                       |
+#       +---------------+-----+--------------------------------------------------------+
+#       | Sample_ID     | Yes | Unique sample identifier (e.g. AG-20210605_9.04_14.08) |
+#       | Sample_Path   | Yes | Audio file path (e.g. /path/to/file/AG-20210605.wav)   |
+#       | Channel       | No  | e.g. 1                                                 |
+#       | Audio_Length  | No  | END_OF_SEGMENT - START_OF_SEGMENT                      |
+#       | Start         | No  | START_OF_SEGMENT                                       |
+#       | End           | No  | END_OF_SEGMENT                                         |
+#       | Transcription | Yes | Text to be aligned                                     |
+#       | Speaker_ID    | No  | Speaker identifier                                     |
+#       | Database      | No  | Database identifier                                    |
+#       +---------------+-----+--------------------------------------------------------+
+#       
+#   ii) An already trained ASR in the target language in the SpeechBrain framework (EncoderASR)
 #
 # Process:
-#   i) Generate VAD segments
+#   i) Generate VAD segments (Optional)
 #   ii) Filter VAD segments
 #   iii) Iterative alignment
-
+#   iv) Merge aligned files (Optional)
+#   v) Generate stm resultant files (Optional)
+#
+#
+# Results:
+#   i) VAD segmentation (Optional)
+#   ii) VAD segmentation filtered
+#   iii) A tsv file for every aligned audio file
+#   iv) A tsv file with all the alignments (Optional)
+#   v) stm files of the aligned data (Optional)
+#
 
 #########################################################
 ###################### DEFINITIONS ######################
@@ -35,6 +50,7 @@
 # config zone
 alignment_name="rtve2022_dev" # alignment name, comment to use timestamp instead
 tsv_path=data/dev/tsv/dev.tsv # source file with metadata
+merge_files=true # merge aligned files in a single tsv
 generate_vad_segments=false # put to false if already generated
 generate_stm_results=true # generate stm files from tsv results
 n_process=1 # number of processes to perform alignment, numbers bigger than 1 perform parallel alignment
@@ -62,7 +78,6 @@ asr_savedir="data/savedir"
 ####################### ALIGNMENT #######################
 #########################################################
 
-
 # get tsv filename
 readarray -d / -t strarr <<<"$tsv_path"
 tsv_filename=${strarr[${#strarr[@]} - 1]}
@@ -86,6 +101,10 @@ mkdir -p $vad_dir
 mkdir -p $results_dir
 mkdir -p $logs_dir
 
+# remove empty files from previous executions
+echo "Removing previous empty files from: "$results_dir
+find $results_dir -type f -empty -print -delete
+
 # get vad segments
 if $generate_vad_segments
 then    
@@ -99,9 +118,11 @@ vad_segments_filepath=$vad_dir"/"$vad_segments_tsv
 vad_segments_filtered_filepath=$vad_dir"/"$vad_segments_filtered_tsv
 
 # filter vad segments
+echo "Filtering VAD segments..."
 python -u src/preprocess/filter_non_speech_segments.py --src $vad_segments_filepath --dst $vad_dir --length $max_non_speech_segments
 
 # get alignment
+echo "Starting alignment..."
 for (( i=0; i<$n_process; i++ ))
 do
     python -u src/iterative_utterance_alignment.py --tsv $tsv_path --vad_segments_tsv $vad_segments_filtered_filepath \
@@ -114,9 +135,17 @@ done
 # Wait for the processes to finish
 wait
 
+# merge results in a single file
+if $merge_files
+then
+    echo "Merging aligned files from: "$results_dir
+    python -u src/postprocess/merge_aligned_files.py --global_tsv $tsv_path --src $results_dir
+fi
+
 # generate stm files
 if $generate_stm_results
 then
+    echo "Generating stm files from: "$results_dir
     stm_dir=$results_dir/stm
     mkdir -p $stm_dir
     python -u src/scripts/tsv_to_stm.py --src_path $results_dir --dst_path $stm_dir
