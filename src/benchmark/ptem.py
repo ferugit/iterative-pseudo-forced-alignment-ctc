@@ -4,7 +4,7 @@
 import sys, getopt
 import statistics
 #import time
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 
 def main(argv):
@@ -64,8 +64,8 @@ def main(argv):
     print("MEAN program \t\t %5.2f seconds"%statistics.mean(TE))
 
     
-#    plt.hist(TE,bins=50)
-#    plt.show()
+    #plt.hist(TE,bins=50)
+    #plt.show()
 
 if __name__ == "__main__":
    main(sys.argv[1:])
