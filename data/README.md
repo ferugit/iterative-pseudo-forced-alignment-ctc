@@ -5,16 +5,16 @@ data/
 ├── asr
 │   ├── CKPT+2022-10-12+12-28-39+00
 │   └── wav2vec2_checkpoint
-├── dev
+├── sample
 │   ├── audio_16kHz
-│   │   └── TaSA
-│   ├── stm
-│   │   ├── ref
-│   │   └── subtitles
-│   └── tsv
+│   │   └── Y_M-Fokw3Wlco.wav
+│   ├── tsv
+│   │   └── benedetti.tsv
+│   └── txt
+│       └── Y_M-Fokw3Wlco.txt
 ├── savedir
 ├── vad
-└── wip_rtve2022_dev
+└── wip_benedetti
     ├── logs
     ├── results
     └── vad
