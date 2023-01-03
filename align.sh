@@ -48,16 +48,18 @@
 
 
 # config zone
-alignment_name="rtve2022_dev" # alignment name, comment to use timestamp instead
-tsv_path=data/dev/tsv/dev.tsv # source file with metadata
+#alignment_name="rtve2022_dev" # alignment name, comment to use timestamp instead
+#tsv_path=data/dev/tsv/dev.tsv # source file with metadata
+alignment_name="benedetti" # alignment name, comment to use timestamp instead
+tsv_path=data/sample/tsv/benedetti.tsv # source file with metadata
 merge_files=true # merge aligned files in a single tsv
-generate_vad_segments=false # put to false if already generated
+generate_vad_segments=true # put to false if already generated
 generate_stm_results=true # generate stm files from tsv results
 n_process=1 # number of processes to perform alignment, numbers bigger than 1 perform parallel alignment
 
 # VAD configuration
 max_non_speech_segments=20.0 # vad segments to filter
-# add more parameters
+# TODO: add more parameters
 
 # Alignment parameters
 threshold=-2.0 # anchors threshold
