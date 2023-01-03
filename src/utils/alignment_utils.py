@@ -2,16 +2,9 @@
 import os
 import sys
 import logging
-import argparse
-from tqdm import tqdm
-
-import torchaudio
 import pandas as pd
 
 from utils import text_utils
-
-from speechbrain.pretrained import EncoderASR
-from speechbrain.alignment.ctc_segmentation import CTCSegmentation
 
 
 def my_custom_logger(logs_path, logger_name, level=logging.DEBUG):
@@ -282,3 +275,10 @@ def fix_text_to_time_proportion(
 
     #file_df.to_csv('references_2.tsv', sep='\t')
     return file_df
+
+
+def remove_artefacts(df, length):
+    df["Text_Length"] = df['Transcription'].apply(lambda x: len(x))
+    df.loc[df['Text_Length'] < length, 'Segment_Score'] = df['Segment_Score'] + 4.0
+    df.drop(['Text_Length'], axis=1, inplace=True)
+    return df
