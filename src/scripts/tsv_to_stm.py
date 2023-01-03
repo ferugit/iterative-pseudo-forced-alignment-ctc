@@ -15,10 +15,6 @@ def main(args):
             for file in files:
                     
                     if file.endswith('.tsv') and not file.startswith('.'):
-                        
-                        if 'AT-20210525.tsv' == file:
-                            continue
-
                         stm_file_name = os.path.join(args.dst_path, file).replace('.tsv', '.stm')
                         src_df = pd.read_csv(os.path.join(args.src_path, file), header=0, sep='\t')
                         filename_wo_extension = file.replace('.tsv', '')
