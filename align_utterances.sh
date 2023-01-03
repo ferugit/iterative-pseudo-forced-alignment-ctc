@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Created by Fernando López Gavilánez (2022)
+# Created by Fernando López Gavilánez (2023)
 #
 # This script generates alignmnets of long audio files using the method proposed in https://arxiv.org/abs/2210.15226 
 #
