@@ -1,13 +1,12 @@
 import os
 import argparse
-
 import pandas as pd
 
 
 def main(args):
 
     if ((not os.path.isdir(args.src_path)) or ((not os.path.isdir(args.dst_path)))):
-        print("Non valid alrguments to convert tsv files to stm.")
+        print("Non valid arguments to convert tsv files to stm.")
 
     else:
         for root, _, files in os.walk(os.path.join(args.src_path)):
@@ -44,7 +43,7 @@ def main(args):
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description="Script to generate clips from tsv")
+    parser = argparse.ArgumentParser(description="Script to generate stm files from tsv")
     parser.add_argument('--src_path', help="path with source tsv files", default="")
     parser.add_argument("--dst_path", help="path where to place stm files", default="")
     args = parser.parse_args()
