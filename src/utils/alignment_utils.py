@@ -167,9 +167,7 @@ def fix_time_reference(file_df, vad_file_df, real_audio_length, n_segments):
             next_speech_start, "Non-Speech", "Non-Speech", database, channel, 0, 'Non-Speech'
             ]
         file_df = insert_row(list_of_indexes[index] + 1, file_df, row_new)
-
-    # FIXME: remove following line
-    #file_df.to_csv('references.tsv', sep='\t')
+    
     return file_df
 
 
@@ -179,7 +177,6 @@ def find_a_valid_text_to_audio_proportion(audio_length, transcript, samples_to_f
     Find a valid text to audio proportion to calculate do the
     alignment.
     """
-    # TODO: review this function: is not working that good!
     original_transcript = transcript
     max_number_of_chars = int(audio_length / samples_to_frames_ratio)
     new_discarded_transcripts = []
@@ -205,6 +202,7 @@ def fix_text_to_time_proportion(
     """
     Reorganize text to time proportion, beacuse window size is big. 
     """
+    
     # Length of remaining text & speech
     total_text_length = file_df.iloc[n_aligned:]['Text_Length'].sum()
     vad_file_df = vad_file_df[vad_file_df['End'] > last_anchor_time].reset_index(drop=True)
@@ -273,7 +271,6 @@ def fix_text_to_time_proportion(
             index, row = next(generator)
             file_df = insert_row(index, file_df, row)
 
-    #file_df.to_csv('references_2.tsv', sep='\t')
     return file_df
 
 
