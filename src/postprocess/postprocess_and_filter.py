@@ -46,6 +46,8 @@ if __name__ == "__main__":
     parser.add_argument('--offset_time', type=float, default=0.0, metavar='offset', help='time window covered by every data sample')
     parser.add_argument("--left_offset", type=float, default=0.0, metavar='left_offset', help='left offset to correct deviation')
     parser.add_argument("--right_offset", type=float, default=0.0, metavar='right_offset', help='right offset to correct deviation')
+
+    # TODO: add collar arg
     args = parser.parse_args()
 
     # Run main

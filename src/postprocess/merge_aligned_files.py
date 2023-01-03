@@ -6,10 +6,10 @@ import pandas as pd
 
 def main(args):
 
-    if(os.path.isfile(args.partition) and os.path.isdir(args.src)):
+    if(os.path.isfile(args.global_tsv) and os.path.isdir(args.src)):
         
-        partition_name = args.partition.split('/')[-1].replace('.tsv', '')
-        partition_df = pd.read_csv(args.partition, header=0, sep='\t')
+        partition_name = args.global_tsv.split('/')[-1].replace('.tsv', '')
+        partition_df = pd.read_csv(args.global_tsv, header=0, sep='\t')
         audio_paths = partition_df['Sample_Path'].unique()
 
         list_of_dataframes = []

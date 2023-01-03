@@ -176,7 +176,7 @@ def main(args):
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description="Script correct RTVE2018DB speaker after alignment")
+    parser = argparse.ArgumentParser(description="Script correct speaker after alignment")
     parser.add_argument("--partition", help="partition that has been aligned", default="")
     parser.add_argument("--src", help="folder with aligned files", default="")
     args = parser.parse_args()
