@@ -86,6 +86,7 @@ def get_file_iterative_segmentation(
             clip_end = float(row['End'])
             transcript = str(row['Transcription']).upper()
             clip_length = clip_end - clip_start
+            database = row['Database']
 
             # Prepare text: list of utterances
             transcript = prepare_text(transcript, max_words_sequence=max_words_sequence)
@@ -258,7 +259,7 @@ def get_file_iterative_segmentation(
                             )
                         )
                         file_alignments.append(
-                            [segment_id, audio_path, row['Channel'], segment_length, absolute_start, absolute_end, segment_score, segment_transcript, row['Speaker_ID'], 'RTVE2018']
+                            [segment_id, audio_path, row['Channel'], segment_length, absolute_start, absolute_end, segment_score, segment_transcript, row['Speaker_ID'], database]
                             )
 
                     # If there is not more audio and text to align: keep last alignment
@@ -479,7 +480,7 @@ def main(args):
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description="Iterative algorithm for RTVE2018DB")
+    parser = argparse.ArgumentParser(description="Iterative pseudo-forced alignment algorithm")
     
     # Input files
     parser.add_argument("--tsv", help="tsv file with comming from a stm file", default="")
