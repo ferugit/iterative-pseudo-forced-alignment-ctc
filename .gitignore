@@ -1,6 +1,7 @@
 .venv
 *__pycache__*
 data/*/
+data/sample/audio_16kHz/Y_M-Fokw3Wlco.wav
 !data/img/
 !data/sample/
 *.log
