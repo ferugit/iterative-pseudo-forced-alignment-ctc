@@ -1,6 +1,4 @@
 import os
-import sys
-import logging
 import argparse
 from tqdm import tqdm
 
@@ -419,7 +417,8 @@ def main(args):
     asr_model = EncoderASR.from_hparams(source=source_path, hparams_file=hparams_path, savedir=savedir_path) 
 
     # Segmentation tool
-    aligner = CTCSegmentation(asr_model, kaldi_style_text=False, time_stamps="fixed", scoring_length=30)
+    l = 30 # to calculate fragment score
+    aligner = CTCSegmentation(asr_model, kaldi_style_text=False, time_stamps="fixed", scoring_length=l)
     samples_to_frames_ratio = aligner.estimate_samples_to_frames_ratio() # audio reduction
 
     # Input files reference files
@@ -470,6 +469,9 @@ def main(args):
                     min_text_to_audio_prop=args.min_text_to_audio_prop,
                     max_text_to_audio_prop_exec=args.max_text_to_audio_prop_exec)
                 file_alignments_df = pd.DataFrame(file_alignments, columns=columns)
+                
+                # Remove low score of short utterances: that have been generated to avoid short anchors
+                file_alignments_df = remove_artefacts(file_alignments_df, args.short_utterance_len)
                 file_alignments_df.to_csv(tsv_result_file, sep='\t', index=None)
             
             progress_bar.update(1)
