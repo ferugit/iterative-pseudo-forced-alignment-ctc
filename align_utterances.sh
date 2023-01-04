@@ -42,6 +42,7 @@
 #   v) stm files of the aligned data (Optional)
 #
 
+
 #########################################################
 ###################### DEFINITIONS ######################
 #########################################################
@@ -75,6 +76,7 @@ max_text_to_audio_prop_exec=10 # Number of consecutive exceptions to stop
 asr_src_path="data/asr/"
 asr_yaml="ctc_sp_with_wav2vec.yaml"
 asr_savedir="data/savedir"
+
 
 #########################################################
 ####################### ALIGNMENT #######################
