@@ -30,7 +30,7 @@ def get_file_iterative_segmentation(
 
     # Logging
     log_name = audio_path.split('/')[-1].replace('.wav', '')
-    logger = my_custom_logger(logs_path, f"{log_name}")
+    logger = alignment_logger(logs_path, f"{log_name}")
     logger.debug('Starting iterative alignment for file: ' + str(audio_path))
     
     # Auxiliar tools to align
