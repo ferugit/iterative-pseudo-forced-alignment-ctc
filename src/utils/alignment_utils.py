@@ -7,7 +7,7 @@ import pandas as pd
 from utils import text_utils
 
 
-def my_custom_logger(logs_path, logger_name, level=logging.DEBUG):
+def alignment_logger(logs_path, logger_name, level=logging.DEBUG):
     """
     Method to return a custom logger with the given name and level
     """
