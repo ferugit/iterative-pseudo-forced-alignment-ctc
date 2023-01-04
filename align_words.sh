@@ -47,7 +47,7 @@ tsv_path=data/wip_benedetti/results/benedetti_aligned.tsv # source file with met
 text_column="Transcription" # column name in tsv that contains the utterance text reference
 
 # alignment corrections: better apply this after
-collar=0.2 # collar to alignment in seconds
+collar=0.0 # collar to alignment in seconds
 offset_time=0.0 # alignment shift to rigth in seconds
 left_offset=0.0 # start shift in seconds
 right_offset=0.0 # end shift in seconds
