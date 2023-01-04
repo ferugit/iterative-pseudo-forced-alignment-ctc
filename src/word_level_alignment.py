@@ -119,7 +119,7 @@ def main(args):
                             )
                         )
 
-                segmented_list.append([sample_id, audio_path, audio_length_time, segment_length, segment_start, segment_end, segment_score, sentence, speaker_id, wanted_text.lower(), database])
+                segmented_list.append([sample_id, audio_path, audio_length_time, segment_length, absolute_start, absolute_end, segment_score, sentence, speaker_id, wanted_text.lower(), database])
         
         progress_bar.update(1)
 
