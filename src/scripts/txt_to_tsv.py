@@ -38,6 +38,10 @@ def main(args):
                                 first_line = lines[cursor]
                                 second_line = lines[cursor+1]
 
+                                # Skip metadata
+                                if second_line.startswith('[') and second_line.endswith(']'):
+                                    continue
+
                                 if idx < ((list_len//2) -1):
                                     thrid_line = lines[cursor+2]
                                 else:
