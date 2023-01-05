@@ -55,8 +55,6 @@ def main(args):
                 channels_first=False
             )
             audio_normalized = asr_model.audio_normalizer(audio, sr)
-            audio_length = audio.shape[0] # samples
-            audio_length_time = audio_length/info.sample_rate
         except:
             print('Start frame: {0}. Enf frame: {1}. Row: {2}'.format(clip_start, clip_end, row))
 
@@ -71,11 +69,11 @@ def main(args):
         # Trim empty spaces
         list_sentence = [sub_utterance.strip() for sub_utterance in list_sentence]
 
+        # Prepare sentence to be aligned
         sentence_to_align = []
 
         for i in range(1,  2*len(list_sentence)):
             sentence_to_align.append("·" if(i+1)%2 else list_sentence[int(i/2)])
-
         sentence_to_align.insert(len(sentence_to_align), "·")
         
         # Get AM posteriors
@@ -98,7 +96,7 @@ def main(args):
         for segment in list_of_segments:
             
             if(len(segment) != 6):
-                #logger.debug('Some problem with segment: ' + str(segment))
+                logger.debug('Some problem with segment: ' + str(segment))
                 continue
 
             if(segment[-1] == wanted_text):
@@ -119,13 +117,13 @@ def main(args):
                             )
                         )
 
-                segmented_list.append([sample_id, audio_path, audio_length_time, segment_length, absolute_start, absolute_end, segment_score, sentence, speaker_id, wanted_text.lower(), database])
+                segmented_list.append([sample_id, audio_path, segment_length, absolute_start, absolute_end, segment_score, sentence, speaker_id, wanted_text.lower(), database])
         
         progress_bar.update(1)
 
     segmented_df = pd.DataFrame(
         segmented_list,
-        columns=['Sample_ID', 'Sample_Path', 'Audio_Length', 'Segment_Length', 'Start', 'End','Segment_Score', 'Transcription', 'Speaker_ID', 'Word', 'Database']
+        columns=['Sample_ID', 'Sample_Path', 'Audio_Length', 'Start', 'End','Segment_Score', 'Transcription', 'Speaker_ID', 'Word', 'Database']
         )
     segmented_df.to_csv(args.tsv_path.replace('_filtered.tsv', '_words.tsv'), sep = '\t', index=None)
 
