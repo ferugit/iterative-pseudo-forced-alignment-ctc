@@ -49,8 +49,6 @@
 
 
 # config zone
-#alignment_name="rtve2022_dev" # alignment name, comment to use timestamp instead
-#tsv_path=data/dev/tsv/dev.tsv # source file with metadata
 alignment_name="benedetti" # alignment name, comment to use timestamp instead
 tsv_path=data/sample/tsv/benedetti.tsv # source file with metadata
 merge_files=true # merge aligned files in a single tsv
