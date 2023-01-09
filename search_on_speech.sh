@@ -41,9 +41,9 @@
 #########################################################
 
 # config zone
-alignment_name="chema_words" # alignment name, comment to use timestamp instead
-tsv_path=data/wip_chema/results/chema_aligned.tsv # source file with metadata
-speech_to_search="okey aura" # text that will be searched in all segments
+alignment_name="benedetti_sos" # alignment name, comment to use timestamp instead
+tsv_path=data/wip_benedetti/results/benedetti_aligned.tsv # source file with metadata
+speech_to_search="conmigo" # text that will be searched in all segments
 
 # alignment corrections: better apply this after
 collar=0.0 # collar to alignment in seconds
