@@ -48,7 +48,15 @@ n_process=1 # number of processes to perform alignment, numbers bigger than 1 pe
 </div></details>
 
 <details><summary><strong>Word-level alignments</strong></summary><div>
-The bash script <strong>align_words.sh</strong> is provided as example to perform audio-to-text alignments words that appear in utterances. The file <strong>config/words.json</strong> muts contain the wanted words. In this case, we will look for "mi amor" occurences. As it is an array, many words can be aligned.
+The bash script <strong>align_words.sh</strong> is provided as example to perform audio-to-text alignments words that appear in the transcription of utterances. The file <strong>config/words.json</strong> must contain the wanted words. The process is done as follows: 
+<ul>
+  <li>Filter transcriptions that contain the wanted text configured in words.json</li>
+  <li>Force-align the wanted text in all utterances.</li>
+  <li>Filter alignments by confidence.</li>
+</ul>
+
+
+In this case, we will look for "mi amor" occurences. As it is an array, many words can be aligned.
 
 ```json
 {
