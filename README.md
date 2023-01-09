@@ -31,7 +31,7 @@ pip install -r requirements.txt
 
 We provide sample data and scripts to perfrom long audio files alignments from Youtube videos. Additionally, we provide the code to search word apparitions when we have text references and when we do not have it. The first step is to follow the instructions from [**data/sample/README.md**](data/sample/README.md) instructions to get the sample data.
 
-<details><summary>Utterance-level alignments</summary><div>
+<details><summary><strong>Utterance-level alignments</strong></summary><div>
 
 The bash script <strong>align_utterances.sh</strong> is provided as example to perform audio-to-text alignments of long audio files using text references from Youtube.
 
@@ -47,7 +47,7 @@ n_process=1 # number of processes to perform alignment, numbers bigger than 1 pe
 ```
 </div></details>
 
-<details><summary>Word-level alignments</summary><div>
+<details><summary><strong>Word-level alignments</strong></summary><div>
 The bash script <strong>align_words.sh</strong> is provided as example to perform audio-to-text alignments words that appear in utterances. The file <strong>config/words.json</strong> muts contain the wanted words. In this case, we will look for "mi amor" occurences. As it is an array, many words can be aligned.
 
 ```json
@@ -66,8 +66,20 @@ text_column="Transcription" # column name in tsv that contains the utterance tex
 
 </div></details>
 
-<details><summary>Search on speech</summary><div>
-TBD
+<details><summary><strong>Search on speech</strong></summary><div>
+This is not recommended unless you are sure that the spoken contains the wanted word. The process to retrieve the words is as follows:
+<ul>
+  <li>Force-align the wanted text in all utterances. As many utterances may not contain the wanted text, we will produce non-valid alignments.</li>
+  <li>Filter alignments by confidence score beeing restictive. A value bigger than -1.0 (log-probabilities) is recommended.</li>
+</ul>
+
+As example, we provide the bash script <strong>search_on_speech.sh</strong> where you should configure source speech and wanted text:
+```bash
+# config zone
+alignment_name="benedetti_sos" # alignment name, comment to use timestamp instead
+tsv_path=data/wip_benedetti/results/benedetti_aligned.tsv # source file with metadata
+speech_to_search="solo" # text that will be searched in all segments
+```
 </div></details>
 
 
