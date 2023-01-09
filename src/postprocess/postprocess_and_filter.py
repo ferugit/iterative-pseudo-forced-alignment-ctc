@@ -31,8 +31,8 @@ def apply_end_collar(df, delta):
 
         old_audio_path = audio_path
         list_of_end_times.append(new_end)
-
-    return pd.Series(list_of_end_times)
+    
+    return list_of_end_times
 
     
 
@@ -49,16 +49,20 @@ def main(args):
         filtered_df = df[df['Segment_Score'] > args.minimum_score]
         filtered_df['Start'] += args.offset_time
         filtered_df['End'] += args.offset_time
-        filtered_df['Start'] += args.right_offset
-        filtered_df['End'] += args.left_offset
-        filtered_df['Audio_Length'] = filtered_df['End'] - filtered_df['Start']
-        audio_seconds = filtered_df['Audio_Length'].sum()
+        filtered_df['Start'] += args.left_offset
+        filtered_df['End'] += args.right_offset
 
         # apply collar
         if args.collar > 0.0:
             delta = args.collar/2
             filtered_df['Start'] = filtered_df['Start'].apply(lambda x: apply_start_collar(x, delta))
-            filtered_df['End'] = apply_end_collar(filtered_df, delta)
+            list_of_end_times = apply_end_collar(filtered_df, delta)
+            # New column times
+            filtered_df.drop('End', axis=1, inplace=True)
+            filtered_df['End'] = list_of_end_times
+
+        filtered_df['Audio_Length'] = filtered_df['End'] - filtered_df['Start']
+        audio_seconds = filtered_df['Audio_Length'].sum()
 
         print('Total audio length {0} seconds'.format(audio_seconds))
 
