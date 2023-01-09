@@ -17,7 +17,7 @@ def main(args):
     # Logger
     log_name = args.tsv_path.split('/')[-1].replace('.tsv', '')
     logger = alignment_logger(args.logs_path, f"{log_name}")
-    logger.debug('Starting word alignment for file: ' + str(args.tsv_path))
+    logger.debug('Starting word search in file: ' + str(args.tsv_path))
 
     # Wanted text
     wanted_text = args.text
@@ -41,7 +41,7 @@ def main(args):
 
     # Start alignment
     segmented_list = []
-    progress_bar = tqdm(total=len(df.index), desc='word-serach')
+    progress_bar = tqdm(total=len(df.index), desc='word-search')
 
     for _, row in df.iterrows():
         audio_path = row['Sample_Path']
@@ -67,7 +67,7 @@ def main(args):
             print('Start frame: {0}. Enf frame: {1}. Row: {2}'.format(clip_start, clip_end, row))
 
         # Prepare text to align        
-        sentence_to_align = ["·", wanted_text.strip(), "·"]
+        sentence_to_align = "·" + wanted_text.strip() + "·"
 
         try:
         
@@ -94,21 +94,20 @@ def main(args):
                     logger.debug('Some problem with segment: ' + str(segment))
                     continue
 
-                if(segment[-1] == wanted_text):
+                if(segment[-1] == sentence_to_align):
                     segment_start = float(segment[2]) + args.offset_time + args.left_offset
                     segment_end = float(segment[3]) + args.offset_time + args.right_offset
                     segment_score = float(segment[4])
                     segment_length = segment_end - segment_start
-                    sample_id = "_".join([audio_name.replace(audio_extension, ''), str(segment_start), str(segment_end)])
-
                     absolute_start = clip_start + segment_start
                     absolute_end = clip_start + segment_end
+                    sample_id = "_".join([audio_name.replace(audio_extension, ''), str(absolute_start), str(absolute_end)])
 
                     logger.debug('{0} | {1} | {2} | {3}'.format(
                                 round(absolute_start, 3),
                                 round(absolute_end, 3),
                                 round(segment_score, 3),
-                                segment[-1]
+                                segment[-1].replace('·', '')
                                 )
                             )
 
@@ -139,7 +138,7 @@ if __name__ == '__main__':
     parser.add_argument("--asr_savedir", help="ASR save dir to store a symbolic link", default="")
 
     # Sosurce data
-    parser.add_argument("--tsv_path", help="metadata with filtered audio", default="")
+    parser.add_argument("--tsv_path", help="metadata with audio segments", default="")
     parser.add_argument("--dst_path", help="path to place results", default="")
 
     # Deviation

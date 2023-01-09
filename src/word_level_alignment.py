@@ -104,10 +104,9 @@ def main(args):
                 segment_end = float(segment[3]) + args.offset_time + args.right_offset
                 segment_score = float(segment[4])
                 segment_length = segment_end - segment_start
-                sample_id = "_".join([audio_name.replace(audio_extension, ''), str(segment_start), str(segment_end)])
-
                 absolute_start = clip_start + segment_start
                 absolute_end = clip_start + segment_end
+                sample_id = "_".join([audio_name.replace(audio_extension, ''), str(absolute_start), str(absolute_end)])
 
                 logger.debug('{0} | {1} | {2} | {3}'.format(
                             round(absolute_start, 3),
