@@ -1,3 +1,4 @@
+import os
 import argparse
 import pandas as pd
 from tqdm import tqdm
@@ -124,7 +125,8 @@ def main(args):
         segmented_list,
         columns=['Sample_ID', 'Sample_Path', 'Audio_Length', 'Start', 'End','Segment_Score', 'Speaker_ID', 'Word', 'Database']
         )
-    segmented_df.to_csv(args.tsv_path.replace('_filtered.tsv', '_words.tsv'), sep = '\t', index=None)
+    tsv_name = args.tsv_path.split('/')[-1].replace('.tsv', '')
+    segmented_df.to_csv(os.path.join(args.dst_path, tsv_name + '_sos.tsv'), sep = '\t', index=None)
 
 
 if __name__ == '__main__':
