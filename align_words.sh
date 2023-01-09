@@ -97,3 +97,4 @@ echo "Starting word-level alignment..."
 python -u src/word_level_alignment.py --tsv $filtered_tsv_dir \
  --dst_path $results_dir --asr_src_path $asr_src_path --asr_yaml $asr_yaml \
  --asr_savedir $asr_savedir --logs_path $logs_dir
+ 
