@@ -10,19 +10,19 @@
 #       
 #       *** The source temporal information is not used, can be dummy temporal information.
 #       
-#       +---------------+-----+--------------------------------------------------------+
-#       |     Name      | Use |                      Explanation                       |
-#       +---------------+-----+--------------------------------------------------------+
-#       | Sample_ID     | Yes | Unique sample identifier (e.g. AG-20210605_9.04_14.08) |
-#       | Sample_Path   | Yes | Audio file path (e.g. /path/to/file/AG-20210605.wav)   |
-#       | Channel       | No  | e.g. 1                                                 |
-#       | Audio_Length  | No  | END_OF_SEGMENT - START_OF_SEGMENT                      |
-#       | Start         | No  | START_OF_SEGMENT                                       |
-#       | End           | No  | END_OF_SEGMENT                                         |
-#       | Transcription | Yes | Text to be aligned                                     |
-#       | Speaker_ID    | No  | Speaker identifier                                     |
-#       | Database      | No  | Database identifier                                    |
-#       +---------------+-----+--------------------------------------------------------+
+#       +---------------+------+--------------------------------------------------------+
+#       |     Name      | Use  |                      Explanation                       |
+#       +---------------+------+--------------------------------------------------------+
+#       | Sample_ID     | Yes  | Unique sample identifier (e.g. AG-20210605_9.04_14.08) |
+#       | Sample_Path   | Yes  | Audio file path (e.g. /path/to/file/AG-20210605.wav)   |
+#       | Channel       | No   | e.g. 1                                                 |
+#       | Audio_Length  | Y/N  | END_OF_SEGMENT - START_OF_SEGMENT                      |
+#       | Start         | Y/N   | START_OF_SEGMENT                                       |
+#       | End           | Y/N   | END_OF_SEGMENT                                         |
+#       | Transcription | Yes  | Text to be aligned                                     |
+#       | Speaker_ID    | No   | Speaker identifier                                     |
+#       | Database      | No   | Database identifier                                    |
+#       +---------------+------+--------------------------------------------------------+
 #       
 #   ii) An already trained ASR in the target language in the SpeechBrain framework (EncoderASR)
 #
@@ -96,5 +96,5 @@ python -u src/search_words.py --tsv_path $tsv_path --dst $results_dir \
 echo "Starting word-level alignment..."
 python -u src/word_level_alignment.py --tsv $filtered_tsv_dir \
  --dst_path $results_dir --asr_src_path $asr_src_path --asr_yaml $asr_yaml \
- --asr_savedir $asr_savedir --logs_path $logs_dir
+ --asr_savedir $asr_savedir --logs_path $logs_dir --use_time_info
  
