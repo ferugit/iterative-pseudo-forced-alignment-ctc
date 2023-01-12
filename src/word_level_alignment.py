@@ -37,13 +37,19 @@ def main(args):
         audio_path = row['Sample_Path']
         audio_name = audio_path.split('/')[-1]
         audio_extension = audio_name.split('.')[-1]
-        clip_start =  float(row['Start'])
-        clip_end = float(row['End'])
-        clip_length = clip_end - clip_start
         wanted_text = row['Wanted_Text']
         database = row['Database']
         sentence = row['Normalized_Transcription']
         speaker_id = row['Speaker_ID']
+
+        if args.time_info:
+            clip_start =  float(row['Start'])
+            clip_end = float(row['End'])
+            clip_length = clip_end - clip_start
+        else:
+            clip_start = 0.0
+            clip_end = float(row['Audio_Length'])
+            clip_length = clip_end
 
         # Read audio and normalize
         try:
@@ -137,6 +143,9 @@ def main(args):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description="Script to generate word-level segmentation")
+
+    # Audio arguments
+    parser.add_argument('--use_time_info', dest='time_info', action='store_true', help='use source temporal information')
 
     # ASR arguments
     parser.add_argument("--asr_src_path", help="ASR source path", default="")
