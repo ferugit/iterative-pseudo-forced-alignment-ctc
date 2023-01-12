@@ -156,7 +156,7 @@ def get_file_iterative_segmentation(
                 audio_length = audio.shape[0] # samples
             except:
                 print('Start frame: {0}. Enf frame: {1}. Row: {2}'.format(clip_start, clip_end, row))
-                print(file_df)
+                print(row)
 
             # Get audio to text proportion
             text_to_audio_proportion = get_text_to_audio_proportion(audio_length, text_length, sr)
@@ -194,7 +194,6 @@ def get_file_iterative_segmentation(
             try:
                 bad_alignment = True
                 repeat_alignment = True
-                already_reapeating = False # control if a repetition already started
                 previous_segmentation = []
                 previous_absolute_end = 0.0
 
