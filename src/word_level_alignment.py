@@ -75,49 +75,56 @@ def main(args):
         for i in range(1,  2*len(list_sentence)):
             sentence_to_align.append("·" if(i+1)%2 else list_sentence[int(i/2)])
         sentence_to_align.insert(len(sentence_to_align), "·")
-        
-        # Get AM posteriors
-        lpz = aligner.get_lpz(audio_normalized)
-        
-        # Conflate text & lpz & config as a segmentation task object
-        task = aligner.prepare_segmentation_task(
-            sentence_to_align,
-            lpz,
-            row['Sample_ID'],
-            audio_normalized.shape[0]
-            )
-        
-        # Apply CTC alignment
-        segments = aligner.get_segments(task)
-        task.set(**segments)
-        segments = task.__str__().strip().split("\n")                
-        list_of_segments = [segment.split(" ", 5) for segment in segments]  
 
-        for segment in list_of_segments:
+        try:
             
-            if(len(segment) != 6):
-                logger.debug('Some problem with segment: ' + str(segment))
-                continue
+            # Get AM posteriors
+            lpz = aligner.get_lpz(audio_normalized)
+            
+            # Conflate text & lpz & config as a segmentation task object
+            task = aligner.prepare_segmentation_task(
+                sentence_to_align,
+                lpz,
+                row['Sample_ID'],
+                audio_normalized.shape[0]
+                )
+            
+            # Apply CTC alignment
+            segments = aligner.get_segments(task)
+            task.set(**segments)
+            segments = task.__str__().strip().split("\n")                
+            list_of_segments = [segment.split(" ", 5) for segment in segments]  
 
-            if(segment[-1] == wanted_text):
-                segment_start = float(segment[2]) + args.offset_time + args.left_offset
-                segment_end = float(segment[3]) + args.offset_time + args.right_offset
-                segment_score = float(segment[4])
-                segment_length = segment_end - segment_start
-                absolute_start = clip_start + segment_start
-                absolute_end = clip_start + segment_end
-                sample_id = "_".join([audio_name.replace(audio_extension, ''), str(absolute_start), str(absolute_end)])
+            for segment in list_of_segments:
+                
+                if(len(segment) != 6):
+                    logger.debug('Some problem with segment: ' + str(segment))
+                    continue
 
-                logger.debug('{0} | {1} | {2} | {3}'.format(
-                            round(absolute_start, 3),
-                            round(absolute_end, 3),
-                            round(segment_score, 3),
-                            segment[-1]
+                if(segment[-1] == wanted_text):
+                    segment_start = float(segment[2]) + args.offset_time + args.left_offset
+                    segment_end = float(segment[3]) + args.offset_time + args.right_offset
+                    segment_score = float(segment[4])
+                    segment_length = segment_end - segment_start
+                    absolute_start = clip_start + segment_start
+                    absolute_end = clip_start + segment_end
+                    sample_id = "_".join([audio_name.replace(audio_extension, ''), str(absolute_start), str(absolute_end)])
+
+                    logger.debug('{0} | {1} | {2} | {3}'.format(
+                                round(absolute_start, 3),
+                                round(absolute_end, 3),
+                                round(segment_score, 3),
+                                segment[-1]
+                                )
                             )
-                        )
 
-                segmented_list.append([sample_id, audio_path, segment_length, absolute_start, absolute_end, segment_score, sentence, speaker_id, wanted_text.lower(), database])
-        
+                    segmented_list.append([sample_id, audio_path, segment_length, absolute_start, absolute_end, segment_score, sentence, speaker_id, wanted_text.lower(), database])
+
+        except AssertionError as e:
+            logger.debug(e)
+            logger.debug('File {0} sequence from {1} to {2} is shorter than text: {3}'.format(audio_path, clip_start, clip_end, wanted_text))
+            continue
+    
         progress_bar.update(1)
 
     segmented_df = pd.DataFrame(
