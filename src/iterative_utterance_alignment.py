@@ -410,10 +410,9 @@ def main(args):
     columns = ['Sample_ID', 'Sample_Path', 'Channel', 'Audio_Length', 'Start', 'End','Segment_Score', 'Transcription', 'Speaker_ID', 'Database']
 
     # Load ASR model
-    source_path = args.asr_src_path
-    hparams_path = args.asr_yaml
+    source_path = args.asr_hub
     savedir_path = args.asr_savedir
-    asr_model = EncoderASR.from_hparams(source=source_path, hparams_file=hparams_path, savedir=savedir_path) 
+    asr_model = EncoderASR.from_hparams(source=source_path, savedir=savedir_path)
 
     # Segmentation tool
     l = 30 # to calculate fragment score
@@ -492,8 +491,7 @@ if __name__ == '__main__':
     parser.add_argument("--logs_path", help="path to place logs", default="")
 
     # ASR arguments
-    parser.add_argument("--asr_src_path", help="ASR source path", default="")
-    parser.add_argument("--asr_yaml", help="ASR yaml file", default="")
+    parser.add_argument("--asr_hub", help="ASR source path", default="")
     parser.add_argument("--asr_savedir", help="ASR save dir to store a symbolic link", default="")
 
     # Alignment configuration

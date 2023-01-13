@@ -71,9 +71,8 @@ min_text_to_audio_prop=0.8 # Min text to audio proportion
 max_text_to_audio_prop_exec=10 # Number of consecutive exceptions to stop
 
 # trained ASR
-asr_src_path="data/asr/"
-asr_yaml="ctc_sp_with_wav2vec.yaml"
-asr_savedir="data/savedir"
+asr_hub="Voyager1/asr-wav2vec2-commonvoice-es"
+asr_savedir="data/asr/"
 
 
 #########################################################
@@ -128,7 +127,7 @@ echo "Starting alignment..."
 for (( i=0; i<$n_process; i++ ))
 do
     python -u src/iterative_utterance_alignment.py --tsv $tsv_path --vad_segments_tsv $vad_segments_filtered_filepath \
-    --dst $results_dir --asr_src_path $asr_src_path --asr_yaml $asr_yaml --asr_savedir $asr_savedir --threshold $threshold \
+    --dst $results_dir --asr_hub $asr_hub --asr_savedir $asr_savedir --threshold $threshold \
     --logs_path $logs_dir --short_utterance_len $short_utterance_len --max_words_sequence $max_words_sequence \
     --max_window_size $max_window_size --window_to_stop $window_to_stop --min_text_to_audio_prop $min_text_to_audio_prop \
     --max_text_to_audio_prop_exec $max_text_to_audio_prop_exec > $logs_dir"/global_"${i}.log &

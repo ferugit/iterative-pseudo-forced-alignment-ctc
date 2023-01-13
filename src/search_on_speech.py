@@ -28,10 +28,9 @@ def main(args):
         wanted_text = normalize_transcript(wanted_text).upper()
 
     # Load ASR model
-    source_path = args.asr_src_path
-    hparams_path = args.asr_yaml
+    source_path = args.asr_hub
     savedir_path = args.asr_savedir
-    asr_model = EncoderASR.from_hparams(source=source_path, hparams_file=hparams_path, savedir=savedir_path) 
+    asr_model = EncoderASR.from_hparams(source=source_path, savedir=savedir_path)
 
     # Segmentation tool
     aligner = CTCSegmentation(asr_model, kaldi_style_text=False, time_stamps="fixed")
@@ -133,8 +132,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Script to search words in speech")
 
     # ASR arguments
-    parser.add_argument("--asr_src_path", help="ASR source path", default="")
-    parser.add_argument("--asr_yaml", help="ASR yaml file", default="")
+    parser.add_argument("--asr_hub", help="ASR source path", default="")
     parser.add_argument("--asr_savedir", help="ASR save dir to store a symbolic link", default="")
 
     # Sosurce data

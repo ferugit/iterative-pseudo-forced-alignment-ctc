@@ -5,3 +5,4 @@ data/sample/audio_16kHz/Y_M-Fokw3Wlco.wav
 !data/img/
 !data/sample/
 *.log
+wav2vec2_checkpoint

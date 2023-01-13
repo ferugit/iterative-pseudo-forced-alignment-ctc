@@ -52,9 +52,8 @@ left_offset=0.0 # start shift in seconds
 right_offset=0.0 # end shift in seconds
 
 # trained ASR
-asr_src_path="data/asr/"
-asr_yaml="ctc_sp_with_wav2vec.yaml"
-asr_savedir="data/savedir"
+asr_hub="Voyager1/asr-wav2vec2-commonvoice-es"
+asr_savedir="data/asr/"
 
 
 #########################################################
@@ -82,5 +81,5 @@ mkdir -p $logs_dir
 # perform alignment
 echo "Starting word-level alignment..."
 python -u src/search_on_speech.py --tsv $tsv_path \
- --dst_path $results_dir --asr_src_path $asr_src_path --asr_yaml $asr_yaml \
- --asr_savedir $asr_savedir --logs_path $logs_dir --text="$speech_to_search"
+ --dst_path $results_dir --asr_hub $asr_hub --asr_savedir $asr_savedir \
+ --logs_path $logs_dir --text="$speech_to_search"
