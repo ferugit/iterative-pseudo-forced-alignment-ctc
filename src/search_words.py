@@ -18,18 +18,25 @@ def main(args):
     # Read dataset metadata
     df_path = os.path.join(args.tsv_path)
     df = pd.read_csv(df_path, header=0, sep='\t')
-    
-    # Normalize text
-    df['Normalized_Transcription'] = df[args.text_column].apply(lambda x: text_utils.normalize_transcript(x).upper())
 
-    # Look for text: uppercase and lowercase
-    for word in wanted_words:
-        row_count = len(filtered_df.index)
-        filtered_df = filtered_df.append(df[df['Normalized_Transcription'].str.contains(word.upper())])
-        new_row_count = len(filtered_df.index)
-        wanted_word_list += ([word.upper()] * (new_row_count - row_count))
-    
-    filtered_df['Wanted_Text'] = wanted_word_list
+    if wanted_words != "*":
+        # Normalize text
+        df['Normalized_Transcription'] = df[args.text_column].apply(lambda x: text_utils.normalize_transcript(x).upper())
+
+        # Look for text: uppercase and lowercase
+        for word in wanted_words:
+            row_count = len(filtered_df.index)
+            filtered_df = filtered_df.append(df[df['Normalized_Transcription'].str.contains(word.upper())])
+            new_row_count = len(filtered_df.index)
+            wanted_word_list += ([word.upper()] * (new_row_count - row_count))
+        
+        filtered_df['Wanted_Text'] = wanted_word_list
+    else:
+        # Wanted words are all words contained in Transcription column
+        df['Normalized_Transcription'] = df[args.text_column].apply(lambda x: text_utils.normalize_transcript(x).upper())
+        filtered_df = df
+        filtered_df['Wanted_Text'] = df['Normalized_Transcription']
+
     counts = filtered_df['Wanted_Text'].value_counts()
     print('Found following occurrences: \n' + str(counts))
     filtered_df.drop_duplicates(keep='first', inplace=True)
