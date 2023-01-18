@@ -74,7 +74,7 @@ def main(args):
 
         print('Total audio length {0} seconds'.format(audio_seconds))
 
-        filtered_df.to_csv(os.path.join(os.path.dirname(args.tsv), partition_name + '_filtered.tsv'), index=None, sep='\t')
+        filtered_df.to_csv(os.path.join(os.path.dirname(args.tsv), partition_name + '_' + args.comp + '_' + str(args.score) + '_filtered.tsv'), index=None, sep='\t')
 
 
     else:
