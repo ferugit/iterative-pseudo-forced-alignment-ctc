@@ -42,7 +42,12 @@ def main(args):
     if(os.path.isfile(args.tsv)):
 
         print('Filtering {0}'.format(args.tsv))
-        print('Threshold {0}'.format(args.minimum_score))
+        print('Fitering method {0}'.format(args.comp))
+        print('Threshold {0}'.format(args.score))
+        print('Right offset {0}'.format(args.right_offset))
+        print('Left offset {0}'.format(args.left_offset))
+        print('Offset {0}'.format(args.offset_time))
+        print('Collar {0}'.format(args.collar))
         
         partition_name = args.tsv.split('/')[-1].replace('.tsv', '')
         df = pd.read_csv(args.tsv, header=0, sep='\t')
