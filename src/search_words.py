@@ -19,7 +19,7 @@ def main(args):
     df_path = os.path.join(args.tsv_path)
     df = pd.read_csv(df_path, header=0, sep='\t')
 
-    if wanted_words != "*":
+    if wanted_words != ["*"]:
         # Normalize text
         df['Normalized_Transcription'] = df[args.text_column].apply(lambda x: text_utils.normalize_transcript(x).upper())
 
