@@ -46,7 +46,10 @@ def main(args):
         
         partition_name = args.tsv.split('/')[-1].replace('.tsv', '')
         df = pd.read_csv(args.tsv, header=0, sep='\t')
-        filtered_df = df[df['Segment_Score'] > args.minimum_score]
+        if (args.comp == 'gt'):
+            filtered_df = df[df['Segment_Score'] >= args.score]
+        elif (args.comp == 'lt'):
+            filtered_df = df[df['Segment_Score'] < args.score]
         filtered_df['Start'] += args.offset_time
         filtered_df['End'] += args.offset_time
         filtered_df['Start'] += args.left_offset
@@ -81,7 +84,8 @@ if __name__ == "__main__":
     parser.add_argument("--tsv", help="tsv with alignment information", default="")
 
     # Post-process parameters
-    parser.add_argument('--minimum_score', type=float, default=-1.0, metavar='TH', help='minimum threshold')
+    parser.add_argument('--score', type=float, default=-1.0, metavar='TH', help='threshold')
+    parser.add_argument('--comp', type=str, default="gt", metavar='comparation', choices=['gt', 'lt'], help='greater than (gt) or lesser than (lt)')
 
     # Deviation
     parser.add_argument('--offset_time', type=float, default=0.0, metavar='offset', help='temporal shift in seconds of alignment (left and rigth)')
