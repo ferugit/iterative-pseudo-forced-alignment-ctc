@@ -1,8 +1,21 @@
 .venv
 *__pycache__*
+
+# Ignore data folder
 data/*/
 data/sample/audio_16kHz/Y_M-Fokw3Wlco.wav
 !data/img/
 !data/sample/
+
+# Logs
 *.log
+
+# Sample data
 wav2vec2_checkpoint
+
+# Ignore bash scripts except sample ones
+*.sh
+!align_utterances.sh
+!align_words.sh
+!generate_clips.sh
+!search_on_speech.sh
