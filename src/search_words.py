@@ -34,8 +34,10 @@ def main(args):
     else:
         # Wanted words are all words contained in Transcription column
         df['Normalized_Transcription'] = df[args.text_column].apply(lambda x: text_utils.normalize_transcript(x).upper())
+        df = df[df["Normalized_Transcription"].str.contains("UNKNOWN") == False]
+        df = df[df["Normalized_Transcription"].str.contains("UNTRANSCRIBED") == False]
+        df['Wanted_Text'] = df['Normalized_Transcription']
         filtered_df = df
-        filtered_df['Wanted_Text'] = df['Normalized_Transcription']
 
     counts = filtered_df['Wanted_Text'].value_counts()
     print('Found following occurrences: \n' + str(counts))
