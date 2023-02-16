@@ -83,7 +83,7 @@ def main(args):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description="Script post-process RTVE2018DB aligned files")
+    parser = argparse.ArgumentParser(description="Script that post-processes aligned files")
     
     # Alignment TSV
     parser.add_argument("--tsv", help="tsv with alignment information", default="")
