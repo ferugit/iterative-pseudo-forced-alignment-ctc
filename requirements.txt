@@ -101,5 +101,5 @@ typing_extensions==4.0.0
 urllib3==1.26.7
 wcwidth==0.2.5
 webencodings==0.5.1
-youtube-dl==2021.12.17
+git+https://github.com/ytdl-org/youtube-dl.git
 zipp==3.7.0
