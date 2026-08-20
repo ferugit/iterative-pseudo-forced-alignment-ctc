@@ -52,6 +52,46 @@ _SAMPLES_PER_FRAME = 320
 _SAMPLE_RATE = 16_000
 
 
+class _SegmentationTask:
+    """
+    Minimal reimplementation of SpeechBrain's SegmentationTask.
+
+    Stores CTC segmentation inputs and results, and formats them as the
+    space-separated lines that the alignment scripts parse:
+        {index} {speaker} {start} {end} {score} {text}
+    """
+
+    def __init__(self):
+        self.name = ""
+        self.text = []
+        self.config = None
+        self.lpz = None
+        self.ground_truth_mat = None
+        self.utt_begin_indices = None
+        self._timings = None
+        self._char_probs = None
+
+    def set(self, timings, char_probs, state_list, utt_begin_indices):
+        self._timings = timings
+        self._char_probs = char_probs
+        self.utt_begin_indices = utt_begin_indices
+
+    def __str__(self) -> str:
+        from ctc_segmentation import determine_utterance_segments
+
+        segments = determine_utterance_segments(
+            self.config,
+            self.utt_begin_indices,
+            self._char_probs,
+            self._timings,
+            self.text,
+        )
+        lines = []
+        for i, ((start, end, score), utt) in enumerate(zip(segments, self.text)):
+            lines.append(f"{i} SPEAKER {start:.6f} {end:.6f} {score:.6f} {utt}")
+        return "\n".join(lines)
+
+
 class OmniCTCAligner:
     """
     Drop-in replacement for the (asr_model, CTCSegmentation) pair used in the
@@ -155,7 +195,10 @@ class OmniCTCAligner:
         name       : str  utterance / file identifier
         audio_len  : int  audio length in samples (unused but kept for compat)
         """
-        from ctc_segmentation import CtcSegmentationParameters, prepare_text, SegmentationTask
+        from ctc_segmentation import CtcSegmentationParameters, prepare_text
+
+        # omniASR outputs lower-case; normalise transcript to match
+        transcript = [u.lower() for u in transcript]
 
         config = CtcSegmentationParameters()
         config.char_list = self.char_list
@@ -164,7 +207,7 @@ class OmniCTCAligner:
 
         ground_truth_mat, utt_begin_indices = prepare_text(config, transcript)
 
-        task = SegmentationTask()
+        task = _SegmentationTask()
         task.name = name
         task.text = transcript
         task.config = config
@@ -218,13 +261,14 @@ class OmniCTCAligner:
         Build the character vocabulary list from the omnilingual tokenizer.
 
         ctc_segmentation expects char_list[i] = string for token index i.
+        The fairseq2 RawSentencePieceTokenizer exposes the SP model via _model.
         """
-        vocab_info = self._tokenizer.vocab_info
-        vocab_size = vocab_info.size
+        sp_model = self._tokenizer._model
+        vocab_size = sp_model.vocabulary_size
         char_list = []
         for i in range(vocab_size):
             try:
-                tok = self._tokenizer.model.index_to_token(i)
+                tok = sp_model.index_to_token(i)
                 char_list.append(tok if tok is not None else "")
             except Exception:
                 char_list.append("")
@@ -234,21 +278,8 @@ class OmniCTCAligner:
         """
         Return the index of the CTC blank token.
 
-        In fairseq2 CTC models the blank token is usually the pad token
-        (index 0).  We also check common token strings ("<blank>", "<pad>").
+        omniASR repurposes the BOS token (<s>, index 0) as the CTC blank.
+        This is confirmed empirically: argmax(logits) returns index 0 on
+        ~90% of frames for silence/non-target phones.
         """
-        # Check if vocab_info exposes a pad_idx attribute
-        vocab_info = self._tokenizer.vocab_info
-        if hasattr(vocab_info, "pad_idx") and vocab_info.pad_idx is not None:
-            return vocab_info.pad_idx
-
-        # Fall back to searching by string
-        for blank_str in ("<blank>", "<pad>", "[blank]"):
-            try:
-                idx = self._tokenizer.model.token_to_index(blank_str)
-                if idx is not None:
-                    return idx
-            except Exception:
-                pass
-
-        return 0  # wav2vec2 CTC models conventionally use index 0
+        return 0

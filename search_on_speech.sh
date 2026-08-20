@@ -54,7 +54,7 @@ right_offset=0.0 # end shift in seconds
 # trained ASR
 asr_hub="omniASR_CTC_7B_v2"
 asr_lang="spa_Latn"
-asr_savedir="models"
+asr_savedir="models/omni_asr"
 
 
 #########################################################

@@ -73,7 +73,7 @@ max_text_to_audio_prop_exec=10 # Number of consecutive exceptions to stop
 # trained ASR
 asr_hub="omniASR_CTC_7B_v2"
 asr_lang="spa_Latn"
-asr_savedir="models"
+asr_savedir="models/omni_asr"
 
 
 #########################################################

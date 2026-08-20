@@ -488,7 +488,7 @@ if __name__ == '__main__':
     # ASR arguments
     parser.add_argument("--asr_hub", help="omniASR model card name", default="omniASR_CTC_7B_v2")
     parser.add_argument("--asr_lang", help="BCP-47 language code (e.g. spa_Latn)", default="spa_Latn")
-    parser.add_argument("--asr_savedir", help="directory for model weight cache", default="models")
+    parser.add_argument("--asr_savedir", help="directory for model weight cache", default="models/omni_asr")
 
     # Alignment configuration
     parser.add_argument('--threshold', type=float, default=-2.0, help='alignment threshold')
