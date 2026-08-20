@@ -1,11 +1,11 @@
 # Iterative pseudo-forced alignment by acoustic CTC loss for self-supervised ASR domain adaptation
 
-This repo contains the code for the publication available on [ArXiv](https://arxiv.org/abs/2210.15226). It allows us to perform audio-to-text alignments using an iterative approach based on anchors. It was originally proposed to perform self-supervised ASR domain adaptation, but it can be used for the following tasks:
-- **Utterance-level alignments**: even with low-quality text references (e.g. Youtube closed-captions).
-- **Word-level alignments**: when having a dataset that is utterance-level aligned, you will be able to search word apparitions.
-- **Search on speech**: when having utterances (e.g. VAD segments) without any text reference, we can search for the occurrence of words.
+This repository contains the code for the publication available on [ArXiv](https://arxiv.org/abs/2210.15226). It performs audio-to-text alignment using an iterative anchor-based approach. It was originally proposed for self-supervised ASR domain adaptation, but it supports three distinct tasks:
+- **Utterance-level alignment**: timestamps are assigned to utterances even with low-quality text references (e.g. YouTube closed-captions).
+- **Word-level alignment**: given an utterance-aligned dataset, specific words or phrases are located within each utterance.
+- **Search on speech**: given untranscribed speech segments (e.g. VAD output), a specific word is searched across all segments by confidence-filtered forced alignment.
 
-Note that this code depends on an already trained ASR with the SpeechBrain framework, concretely an EncoderASR. The quality of the alignments will vary depending on the ASR performance (as known the CTC spikes are not always accurate). The best approach is to use an acoustic ASR that classifies characters.
+The code requires a pre-trained SpeechBrain `EncoderASR` model. Alignment quality depends on ASR accuracy — CTC spikes are not always precisely placed — so character-level acoustic models produce the best results.
 
 
 ## ASR self-supervised domain-adaptation scheme
@@ -16,20 +16,34 @@ The utterance-level alignments produced with this repository can be used to cont
 
 ## Environment setup
 
-Create a virtual environment and install dependences by running the next lines:
+Python 3.10 or 3.11 is required. Create a virtual environment and install dependencies:
 
-``` bash
-# create a virtual environment
+```bash
 python3 -m venv .venv
-# activate the virtual environment
 source .venv/bin/activate
-# install dependencies
+
+# Install PyTorch with CUDA support first (adjust cu124 to match your driver)
+pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu124
+
+# Pin numpy below 2.x before building ctc-segmentation (its Cython extension
+# is compiled against numpy 1.x)
+pip install "numpy<2"
+
+# Install ctc-segmentation from source so it compiles against the pinned numpy
+pip install ctc-segmentation --no-binary ctc-segmentation --no-deps
+
+# Install the remaining dependencies
 pip install -r requirements.txt
 ```
 
+> **Note:** `requirements.txt` lists `torch` and `torchaudio` without a CUDA
+> suffix so that the file stays portable. The explicit `--index-url` step above
+> is what pulls the GPU-enabled wheels. `huggingface-hub` is capped at `<0.36`
+> because `speechbrain==0.5.16` uses an argument removed in that release.
+
 ## Usage
 
-We provide sample data and scripts to perfrom long audio files alignments from Youtube videos. Additionally, we provide the code to search word apparitions when we have text references and when we do not have it. The first step is to follow the instructions from [**data/sample/README.md**](data/sample/README.md) instructions to get the sample data.
+Sample data and scripts are provided for aligning a YouTube video. Follow [**data/sample/README.md**](data/sample/README.md) to download the audio before running any of the scripts below.
 
 <details><summary><strong>Utterance-level alignments</strong></summary><div>
 
@@ -56,7 +70,7 @@ The bash script <strong>align_words.sh</strong> is provided as example to perfor
 </ul>
 
 
-In this case, we will look for "mi amor" occurences. As it is an array, many words can be aligned.
+In this example, the search targets "mi amor". The `words` field is an array, so multiple phrases can be aligned in one run.
 
 ```json
 {
@@ -75,10 +89,10 @@ text_column="Transcription" # column name in tsv that contains the utterance tex
 </div></details>
 
 <details><summary><strong>Search on speech</strong></summary><div>
-This is not recommended unless you are sure that the spoken contains the wanted word. The process to retrieve the words is as follows:
+Use this mode only when you have reason to believe the audio contains the target word. The process is:
 <ul>
-  <li>Force-align the wanted text in all utterances. As many utterances may not contain the wanted text, we will produce non-valid alignments.</li>
-  <li>Filter alignments by confidence score beeing restictive. A value bigger than -1.0 (log-probabilities) is recommended.</li>
+  <li>Force-align the target text against every utterance. Most segments will not contain it, so most alignments will be invalid.</li>
+  <li>Filter by confidence score with a strict threshold. A value above -1.0 (log-probability) is recommended.</li>
 </ul>
 
 As example, we provide the bash script <strong>search_on_speech.sh</strong> where you should configure source speech and wanted text:
@@ -91,7 +105,7 @@ speech_to_search="solo" # text that will be searched in all segments
 </div></details>
 
 
-## How works the iterative pseudo-forced alignment approach
+## How the iterative pseudo-forced alignment approach works
 
 1. Pre-process audio with a Voice Activity Detector (VAD), removing only non-speech segments longer than a given length.
 2. Split the reference text in utterances with a maximum length of words.

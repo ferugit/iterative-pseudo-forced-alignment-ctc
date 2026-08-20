@@ -19,3 +19,7 @@ wav2vec2_checkpoint
 !align_words.sh
 !generate_clips.sh
 !search_on_speech.sh
+
+
+# Ignore iteration details
+CLAUDE.md
