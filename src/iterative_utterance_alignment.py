@@ -7,12 +7,10 @@ import pandas as pd
 
 from utils.alignment_utils import *
 
-from speechbrain.pretrained import EncoderASR
-from speechbrain.alignment.ctc_segmentation import CTCSegmentation
+from asr.omni_asr import OmniCTCAligner
 
 
 def get_file_iterative_segmentation(
-    asr_model,
     aligner,
     audio_path,
     file_df,
@@ -152,7 +150,7 @@ def get_file_iterative_segmentation(
                     num_frames=int(clip_length * info.sample_rate), 
                     channels_first=False
                 )
-                audio_normalized = asr_model.audio_normalizer(audio, sr)
+                audio_normalized = aligner.audio_normalizer(audio, sr)
                 audio_length = audio.shape[0] # samples
             except:
                 print('Start frame: {0}. Enf frame: {1}. Row: {2}'.format(clip_start, clip_end, row))
@@ -409,15 +407,13 @@ def main(args):
     # Columns to be used in results files
     columns = ['Sample_ID', 'Sample_Path', 'Channel', 'Audio_Length', 'Start', 'End','Segment_Score', 'Transcription', 'Speaker_ID', 'Database']
 
-    # Load ASR model
-    source_path = args.asr_hub
-    savedir_path = args.asr_savedir
-    asr_model = EncoderASR.from_hparams(source=source_path, savedir=savedir_path)
-
-    # Segmentation tool
-    l = 30 # to calculate fragment score
-    aligner = CTCSegmentation(asr_model, kaldi_style_text=False, time_stamps="fixed", scoring_length=l)
-    samples_to_frames_ratio = aligner.estimate_samples_to_frames_ratio() # audio reduction
+    # Load ASR model + aligner
+    aligner = OmniCTCAligner(
+        model_card=args.asr_hub,
+        lang=args.asr_lang,
+        model_dir=args.asr_savedir,
+    )
+    samples_to_frames_ratio = aligner.estimate_samples_to_frames_ratio()
 
     # Input files reference files
     df_path = os.path.normpath(args.tsv)
@@ -451,7 +447,6 @@ def main(args):
                 vad_file_df = vad_df[vad_df['Sample_Path'] == audio_path]
                 vad_file_df = vad_file_df.reset_index(drop=True)
                 file_alignments = get_file_iterative_segmentation(
-                    asr_model,
                     aligner,
                     audio_path,
                     file_df,
@@ -491,8 +486,9 @@ if __name__ == '__main__':
     parser.add_argument("--logs_path", help="path to place logs", default="")
 
     # ASR arguments
-    parser.add_argument("--asr_hub", help="ASR source path", default="")
-    parser.add_argument("--asr_savedir", help="ASR save dir to store a symbolic link", default="")
+    parser.add_argument("--asr_hub", help="omniASR model card name", default="omniASR_CTC_7B_v2")
+    parser.add_argument("--asr_lang", help="BCP-47 language code (e.g. spa_Latn)", default="spa_Latn")
+    parser.add_argument("--asr_savedir", help="directory for model weight cache", default="models")
 
     # Alignment configuration
     parser.add_argument('--threshold', type=float, default=-2.0, help='alignment threshold')

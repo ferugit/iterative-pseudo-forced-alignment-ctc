@@ -49,7 +49,7 @@
 
 
 # config zone
-alignment_name="benedetti" # alignment name, comment to use timestamp instead
+alignment_name="benedetti_omni" # alignment name, comment to use timestamp instead
 tsv_path=data/sample/tsv/benedetti.tsv # source file with metadata
 merge_files=true # merge aligned files in a single tsv
 generate_vad_segments=true # put to false if already generated
@@ -71,8 +71,9 @@ min_text_to_audio_prop=0.8 # Min text to audio proportion
 max_text_to_audio_prop_exec=10 # Number of consecutive exceptions to stop
 
 # trained ASR
-asr_hub="Voyager1/asr-wav2vec2-commonvoice-es"
-asr_savedir="data/asr/"
+asr_hub="omniASR_CTC_7B_v2"
+asr_lang="spa_Latn"
+asr_savedir="models"
 
 
 #########################################################
@@ -110,7 +111,7 @@ find $results_dir -type f -empty -print -delete
 if $generate_vad_segments
 then    
     echo "Generating VAD segments: "$tsv_path
-    python -u src/preprocess/get_vad_segments_speechbrain.py --src $tsv_path --dst $vad_dir
+    python -u src/preprocess/get_vad_segments_silero.py --src $tsv_path --dst $vad_dir --model_dir models/silero
 fi
 
 vad_segments_tsv=${tsv_filename/.tsv/_vad_segments.tsv}
@@ -127,7 +128,7 @@ echo "Starting alignment..."
 for (( i=0; i<$n_process; i++ ))
 do
     python -u src/iterative_utterance_alignment.py --tsv $tsv_path --vad_segments_tsv $vad_segments_filtered_filepath \
-    --dst $results_dir --asr_hub $asr_hub --asr_savedir $asr_savedir --threshold $threshold \
+    --dst $results_dir --asr_hub $asr_hub --asr_lang $asr_lang --asr_savedir $asr_savedir --threshold $threshold \
     --logs_path $logs_dir --short_utterance_len $short_utterance_len --max_words_sequence $max_words_sequence \
     --max_window_size $max_window_size --window_to_stop $window_to_stop --min_text_to_audio_prop $min_text_to_audio_prop \
     --max_text_to_audio_prop_exec $max_text_to_audio_prop_exec > $logs_dir"/global_"${i}.log &

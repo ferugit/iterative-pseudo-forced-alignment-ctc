@@ -13,6 +13,10 @@ data/sample/audio_16kHz/Y_M-Fokw3Wlco.wav
 # Sample data
 wav2vec2_checkpoint
 
+# Model weights cache (keep the directory marker)
+models/*
+!models/.gitkeep
+
 # Ignore bash scripts except sample ones
 *.sh
 !align_utterances.sh

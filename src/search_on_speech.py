@@ -5,8 +5,7 @@ from tqdm import tqdm
 
 import torchaudio
 
-from speechbrain.pretrained import EncoderASR
-from speechbrain.alignment.ctc_segmentation import CTCSegmentation
+from asr.omni_asr import OmniCTCAligner
 
 from utils.text_utils import normalize_transcript
 from utils.alignment_utils import alignment_logger
@@ -27,13 +26,12 @@ def main(args):
     else:
         wanted_text = normalize_transcript(wanted_text).upper()
 
-    # Load ASR model
-    source_path = args.asr_hub
-    savedir_path = args.asr_savedir
-    asr_model = EncoderASR.from_hparams(source=source_path, savedir=savedir_path)
-
-    # Segmentation tool
-    aligner = CTCSegmentation(asr_model, kaldi_style_text=False, time_stamps="fixed")
+    # Load ASR model + aligner
+    aligner = OmniCTCAligner(
+        model_card=args.asr_hub,
+        lang=args.asr_lang,
+        model_dir=args.asr_savedir,
+    )
 
     # Read source information
     df = pd.read_csv(args.tsv_path, header=0, sep='\t')
@@ -61,7 +59,7 @@ def main(args):
                 num_frames=int(clip_length * info.sample_rate), 
                 channels_first=False
             )
-            audio_normalized = asr_model.audio_normalizer(audio, sr)
+            audio_normalized = aligner.audio_normalizer(audio, sr)
         except:
             print('Start frame: {0}. Enf frame: {1}. Row: {2}'.format(clip_start, clip_end, row))
 
@@ -132,8 +130,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Script to search words in speech")
 
     # ASR arguments
-    parser.add_argument("--asr_hub", help="ASR source path", default="")
-    parser.add_argument("--asr_savedir", help="ASR save dir to store a symbolic link", default="")
+    parser.add_argument("--asr_hub", help="omniASR model card name", default="omniASR_CTC_7B_v2")
+    parser.add_argument("--asr_lang", help="BCP-47 language code (e.g. spa_Latn)", default="spa_Latn")
+    parser.add_argument("--asr_savedir", help="directory for model weight cache", default="models")
 
     # Sosurce data
     parser.add_argument("--tsv_path", help="metadata with audio segments", default="")

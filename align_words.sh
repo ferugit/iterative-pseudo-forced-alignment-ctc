@@ -53,8 +53,9 @@ left_offset=0.0 # start shift in seconds
 right_offset=0.0 # end shift in seconds
 
 # trained ASR
-asr_hub="Voyager1/asr-wav2vec2-commonvoice-es"
-asr_savedir="data/asr/"
+asr_hub="omniASR_CTC_7B_v2"
+asr_lang="spa_Latn"
+asr_savedir="models"
 
 
 #########################################################
@@ -94,6 +95,6 @@ python -u src/search_words.py --tsv_path $tsv_path --dst $results_dir \
 # perform alignment
 echo "Starting word-level alignment..."
 python -u src/word_level_alignment.py --tsv $filtered_tsv_dir \
- --dst_path $results_dir --asr_hub $asr_hub --asr_savedir $asr_savedir \
+ --dst_path $results_dir --asr_hub $asr_hub --asr_lang $asr_lang --asr_savedir $asr_savedir \
  --logs_path $logs_dir --use_time_info
  
