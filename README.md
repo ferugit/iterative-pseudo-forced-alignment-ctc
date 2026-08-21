@@ -116,6 +116,37 @@ to text length. This assumes constant speech velocity but is only used to have i
 
 <img src="data/img/alignment_diagram.jpg" width="70%" height="70%">
 
+## Alignment quality observations
+
+These notes summarise empirical findings from comparing the original wav2vec2 system (SpeechBrain, `Voyager1/asr-wav2vec2-commonvoice-es`) with the current OmniASR-CTC-7B system on a 157-utterance Spanish poetry corpus (benedetti sample, ~240 s).
+
+### End-word boundary clipping
+
+Both systems tend to place the right boundary of an utterance slightly before the final phone closes — typically 0.05–0.9 s short. The root cause is shared: CTC training only requires the correct token sequence to be decodable — it imposes no constraint on where within a phone's duration the model fires. In practice CTC posteriors are sparse and peaky: the model emits a high-confidence spike at whatever frame it finds most discriminative for that token, then collapses back to blank. Where the spike lands within a phone is non-deterministic and model-dependent. For a word-final consonant followed by silence, the spike often precedes the full acoustic closure; the remaining frames are absorbed as blank, and the aligner places the segment end at the last spike rather than at the physical end of the phone.
+
+**Why character-level tokenisation helps.** With a char-level model, each character generates its own posterior spike, spreading mass more evenly across the word. Subword tokenisers (BPE, SentencePiece) as used by OmniASR-CTC-7B (10 288-token vocabulary) produce fewer, coarser spikes per word. The rightmost spike may therefore land noticeably earlier than the acoustic end of the last token. This was also observed with the original wav2vec2 model, so the phenomenon is not specific to OmniASR — it is inherent to any CTC aligner that uses tokens larger than single characters.
+
+**Practical correction.** A right-boundary post-processing offset of +0.05 to +0.20 s recovers most clipped endings. The `--right_offset` argument present in all three alignment scripts can apply this at inference time. Empirically, on the benedetti corpus, the median end-boundary difference between the two systems is 0.020 s and the MAE is 0.056 s.
+
+### Score distribution and threshold calibration
+
+The two systems have very different score distributions:
+
+| System | Median score | Mean score | Std | Utterances below −2.0 |
+|---|---|---|---|---|
+| wav2vec2 (SpeechBrain) | −0.419 | −0.612 | 0.774 | 6 / 157 |
+| OmniASR-CTC-7B | −0.097 | −0.275 | 0.378 | 0 / 157 |
+
+OmniASR is more confident on average and never crosses the default −2.0 failure threshold. This means the default `--threshold -2.0` is too permissive for OmniASR — bad alignments will not be filtered. A tighter threshold in the range −1.0 to −0.5 is more appropriate when running the omniASR pipeline. Conversely, wav2vec2's wider distribution makes the −2.0 threshold genuinely discriminative.
+
+### Text/speech mismatch handling
+
+When the reference text contains a word absent from the speech (e.g. a conjunction "y" that the speaker did not utter), CTC alignment forces every character into the nearest plausible frame. This can shift the start boundary by several seconds with no obvious degradation in the segment score. A complementary post-processing heuristic — flagging utterances whose start time is implausibly early relative to the previous accepted anchor — would catch this class of error, which pure score filtering cannot.
+
+### Tokeniser awareness
+
+OmniASR-CTC-7B uses a SentencePiece model with 10 288 tokens (index 0, `<s>`, repurposed as the CTC blank). The vocabulary includes subword units spanning multiple characters, accent marks, and multilingual pieces. Alignment precision degrades proportionally to average token length: the longer the subword, the larger the frame region the aligner must assign to a single spike. Users working with languages that have long agglutinative words should expect larger boundary errors than on Spanish.
+
 ## Citations
 
 ```bibtex
